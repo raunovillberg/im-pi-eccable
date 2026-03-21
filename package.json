@@ -1,0 +1,13 @@
+{
+  "name": "im-pi-eccable",
+  "version": "0.1.0",
+  "description": "Pi extension for running Impeccable commands from a picker UI",
+  "keywords": ["pi-package"],
+  "scripts": {
+    "refresh:upstream": "./scripts/refresh-upstream.sh"
+  },
+  "license": "Apache-2.0",
+  "pi": {
+    "extensions": ["./index.ts"]
+  }
+}
