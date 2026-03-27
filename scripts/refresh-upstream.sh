@@ -16,16 +16,28 @@ echo "Cloning upstream: $UPSTREAM_REPO"
 git clone --depth=1 --filter=blob:none --sparse "$UPSTREAM_REPO" "$UPSTREAM_DIR"
 
 echo "Selecting sparse paths"
-git -C "$UPSTREAM_DIR" sparse-checkout set source/commands source/skills/frontend-design
+git -C "$UPSTREAM_DIR" sparse-checkout set source/skills
 
-echo "Syncing command files"
+echo "Syncing skill files as commands"
 mkdir -p "$ROOT_DIR/commands"
-cp -f "$UPSTREAM_DIR"/source/commands/*.md "$ROOT_DIR/commands/"
+# Remove old commands that may no longer exist upstream
+rm -f "$ROOT_DIR/commands"/*.md
+for skill_dir in "$UPSTREAM_DIR"/source/skills/*/; do
+  skill_name="$(basename "$skill_dir")"
+  if [ -f "$skill_dir/SKILL.md" ]; then
+    cp -f "$skill_dir/SKILL.md" "$ROOT_DIR/commands/${skill_name}.md"
+  fi
+done
 
-echo "Syncing vendored skill files"
-mkdir -p "$ROOT_DIR/skills"
-rm -rf "$ROOT_DIR/skills/frontend-design"
-cp -R "$UPSTREAM_DIR/source/skills/frontend-design" "$ROOT_DIR/skills/frontend-design"
+echo "Syncing vendored reference files"
+for skill_dir in "$UPSTREAM_DIR"/source/skills/*/; do
+  skill_name="$(basename "$skill_dir")"
+  ref_dir="$skill_dir/reference"
+  if [ -d "$ref_dir" ]; then
+    mkdir -p "$ROOT_DIR/skills/$skill_name/reference"
+    cp -f "$ref_dir"/*.md "$ROOT_DIR/skills/$skill_name/reference/"
+  fi
+done
 
 echo "Normalizing command references to local skill path"
 python3 - "$ROOT_DIR" <<'PY'
@@ -45,6 +57,9 @@ explicit = (
 for file in sorted(commands.glob("*.md")):
     text = file.read_text(encoding="utf-8")
     original = text
+
+    # Normalize command_prefix references to our /impeccable invocation
+    text = text.replace("{{command_prefix}}", "/impeccable ")
 
     # Canonical placeholders (resolved by index.ts at runtime to extension-local absolute paths)
     text = text.replace("`skills/frontend-design/SKILL.md`", "`{{frontend_design_skill_path}}`")

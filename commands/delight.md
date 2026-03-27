@@ -1,30 +1,15 @@
 ---
 name: delight
-description: Add moments of joy, personality, and unexpected touches that make interfaces memorable and enjoyable to use. Elevates functional to delightful.
-args:
-  - name: target
-    description: The feature or area to add delight to (optional)
-    required: false
+description: "Add moments of joy, personality, and unexpected touches that make interfaces memorable and enjoyable to use. Elevates functional to delightful. Use when the user asks to add polish, personality, animations, micro-interactions, delight, or make an interface feel fun or memorable."
+argument-hint: "[target]"
+user-invocable: true
 ---
 
 Identify opportunities to add moments of joy, personality, and unexpected polish that transform functional interfaces into delightful experiences.
 
 ## MANDATORY PREPARATION
 
-### Context Gathering (Do This First)
-
-You cannot do a great job without having necessary context, such as target audience (critical), desired use-cases (critical), brand personality (playful vs professional vs quirky vs elegant), and what's appropriate for the domain.
-
-Attempt to gather these from the current thread or codebase.
-
-1. If you don't find *exact* information and have to infer from existing design and functionality, you MUST STOP and {{ask_instruction}} whether you got it right.
-2. Otherwise, if you can't fully infer or your level of confidence is medium or lower, you MUST {{ask_instruction}} clarifying questions first to complete your context.
-
-Do NOT proceed until you have answers. Delight that's wrong for the context is worse than no delight at all.
-
-### Read local frontend-design guidance
-
-Read and follow the vendored local guidance in this repository at `{{frontend_design_skill_path}}` (plus its linked `{{frontend_design_reference_glob}}` files) for design principles and anti-patterns. Do NOT proceed until you have read them and know all DO's and DON'Ts.
+Invoke /impeccable frontend-design — it contains design principles, anti-patterns, and the **Context Gathering Protocol**. Follow the protocol before proceeding — if no design context exists yet, you MUST run /impeccable teach-impeccable first. Additionally gather: what's appropriate for the domain (playful vs professional vs quirky vs elegant).
 
 ---
 
@@ -112,7 +97,7 @@ Add personality and joy through these methods:
 
 **Loading delight**:
 - Playful loading animations (not just spinners)
-- Personality in loading messages ("Herding pixels..." "Teaching robots to dance...")
+- Personality in loading messages (write product-specific ones, not generic AI filler)
 - Progress indication with encouraging messages
 - Skeleton screens with subtle animations
 
@@ -202,7 +187,7 @@ Add personality and joy through these methods:
 
 **Form interactions**:
 - Input fields that animate on focus
-- Checkboxes that bounce when checked
+- Checkboxes with a satisfying scale pulse when checked
 - Success state that celebrates valid input
 - Auto-grow textareas
 
@@ -252,12 +237,14 @@ Add personality and joy through these methods:
 - Countdown with encouraging messages
 
 ```
-Loading messages rotation:
-- "Waking up the servers..."
-- "Teaching robots to dance..."
-- "Consulting the magic 8-ball..."
-- "Counting backwards from infinity..."
+Loading messages — write ones specific to your product, not generic AI filler:
+- "Crunching your latest numbers..."
+- "Syncing with your team's changes..."
+- "Preparing your dashboard..."
+- "Checking for updates since yesterday..."
 ```
+
+**WARNING**: Avoid cliched loading messages like "Herding pixels", "Teaching robots to dance", "Consulting the magic 8-ball", "Counting backwards from infinity". These are AI-slop copy — instantly recognizable as machine-generated. Write messages that are specific to what your product actually does.
 
 ### Celebration Moments
 

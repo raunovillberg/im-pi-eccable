@@ -1,10 +1,14 @@
 ---
 name: onboard
-description: Design or improve onboarding flows, empty states, and first-time user experiences. Helps users get started successfully and understand value quickly.
-args:
-  - name: target
-    description: The feature or area needing onboarding (optional)
-    required: false
+description: "Designs and improves onboarding flows, empty states, and first-run experiences to help users reach value quickly. Use when the user mentions onboarding, first-time users, empty states, activation, getting started, or new user flows."
+argument-hint: "[target]"
+user-invocable: true
+---
+
+## MANDATORY PREPARATION
+
+Invoke /impeccable frontend-design — it contains design principles, anti-patterns, and the **Context Gathering Protocol**. Follow the protocol before proceeding — if no design context exists yet, you MUST run /impeccable teach-impeccable first. Additionally gather: the "aha moment" you want users to reach, and users' experience level.
+
 ---
 
 Create or improve onboarding experiences that help users understand, adopt, and succeed with the product quickly.

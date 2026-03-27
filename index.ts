@@ -3,7 +3,7 @@
  *
  * Provides one slash command: /impeccable
  * - Command picker sourced from ./commands/*.md (next to this file)
- * - Argument-aware prompting and inline key=value support
+ * - Argument hint input for user-invocable commands
  * - Sends the expanded command body as a user message
  *
  * Setup:
@@ -14,11 +14,11 @@
  *
  * Pull commands + local frontend-design skill from GitHub via sparse checkout:
  *   git clone --depth=1 --filter=blob:none --sparse https://github.com/pbakaus/impeccable.git /tmp/impeccable && \
- *   git -C /tmp/impeccable sparse-checkout set source/commands source/skills/frontend-design && \
- *   mkdir -p ~/.pi/agent/extensions/impeccable/commands ~/.pi/agent/extensions/impeccable/skills && \
- *   cp -R /tmp/impeccable/source/commands/*.md ~/.pi/agent/extensions/impeccable/commands/ && \
- *   rm -rf ~/.pi/agent/extensions/impeccable/skills/frontend-design && \
- *   cp -R /tmp/impeccable/source/skills/frontend-design ~/.pi/agent/extensions/impeccable/skills/frontend-design && \
+ *   git -C /tmp/impeccable sparse-checkout set source/skills && \
+ *   mkdir -p ~/.pi/agent/extensions/impeccable/commands && \
+ *   for d in /tmp/impeccable/source/skills/*/; do [ -f "$d/SKILL.md" ] && cp "$d/SKILL.md" ~/.pi/agent/extensions/impeccable/commands/$(basename "$d").md; done && \
+ *   rm -rf ~/.pi/agent/extensions/impeccable/skills && \
+ *   for d in /tmp/impeccable/source/skills/*/; do [ -d "$d/reference" ] && mkdir -p ~/.pi/agent/extensions/impeccable/skills/$(basename "$d")/reference && cp "$d/reference"/*.md ~/.pi/agent/extensions/impeccable/skills/$(basename "$d")/reference/; done && \
  *   rm -rf /tmp/impeccable
  */
 import fs from "node:fs";
@@ -30,9 +30,7 @@ import {
 	Container,
 	fuzzyFilter,
 	Input,
-	Key,
 	getKeybindings,
-	matchesKey,
 	Spacer,
 	type AutocompleteItem,
 	type SelectItem,
@@ -40,16 +38,10 @@ import {
 	Text,
 } from "@mariozechner/pi-tui";
 
-type CommandArg = {
-	name: string;
-	description?: string;
-	required?: boolean;
-};
-
 type SourceCommand = {
 	name: string;
 	description: string;
-	args: CommandArg[];
+	argumentHint: string | null;
 	body: string;
 	pickerLabel?: string;
 };
@@ -61,12 +53,13 @@ function getFrontendDesignPickerCommand(): SourceCommand {
 		name: FRONTEND_DESIGN_PICKER_COMMAND_NAME,
 		pickerLabel: "skill: frontend-design",
 		description: "Load vendored frontend-design skill (extension-local)",
-		args: [],
+		argumentHint: null,
 		body: "",
 	};
 }
 
 const PI_BASE_PLACEHOLDERS: Record<string, string> = {
+	command_prefix: "/impeccable ",
 	model: "the model",
 	config_file: "AGENTS.md",
 	ask_instruction: "ask the user directly to clarify what you cannot infer.",
@@ -188,24 +181,19 @@ function readSourceCommands(): SourceCommand[] {
 		.filter((file) => file.endsWith(".md"))
 		.sort((a, b) => a.localeCompare(b));
 
-	return files.map((file) => {
-		const content = fs.readFileSync(path.join(commandsDir, file), "utf8");
-		const { frontmatter, body } = parseFrontmatter(content);
-		const rawArgs = Array.isArray(frontmatter.args) ? frontmatter.args : [];
+	return files
+		.map((file) => {
+			const content = fs.readFileSync(path.join(commandsDir, file), "utf8");
+			const { frontmatter, body } = parseFrontmatter(content);
 
-		const args: CommandArg[] = rawArgs.map((item) => ({
-			name: String(item.name ?? "").trim(),
-			description: item.description ? String(item.description) : undefined,
-			required: Boolean(item.required),
-		}));
-
-		return {
-			name: String(frontmatter.name || path.basename(file, ".md")),
-			description: String(frontmatter.description || ""),
-			args: args.filter((arg) => arg.name.length > 0),
-			body,
-		};
-	});
+			return {
+				name: String(frontmatter.name || path.basename(file, ".md")),
+				description: String(frontmatter.description || ""),
+				argumentHint: frontmatter["argument-hint"] ? String(frontmatter["argument-hint"]) : null,
+				body,
+			};
+		})
+		.filter((command) => command.name !== FRONTEND_DESIGN_PICKER_COMMAND_NAME);
 }
 
 function applyPlaceholders(template: string, values: Record<string, string>): string {
@@ -214,17 +202,6 @@ function applyPlaceholders(template: string, values: Record<string, string>): st
 		output = output.replaceAll(`{{${key}}}`, value);
 	}
 	return output;
-}
-
-function parseInlineNamedArgs(raw: string): Record<string, string> {
-	const result: Record<string, string> = {};
-	const matches = raw.matchAll(/([a-zA-Z0-9_-]+)=((?:"[^"]*")|(?:'[^']*')|(?:\S+))/g);
-	for (const match of matches) {
-		const [, key, rawValue] = match;
-		if (!key || !rawValue) continue;
-		result[key] = rawValue.replace(/^['"]|['"]$/g, "");
-	}
-	return result;
 }
 
 async function pickCommand(commands: SourceCommand[], ctx: ExtensionCommandContext): Promise<SourceCommand | null> {
@@ -333,33 +310,22 @@ async function pickCommand(commands: SourceCommand[], ctx: ExtensionCommandConte
 	return commands.find((command) => command.name === selectedName) ?? null;
 }
 
-async function collectArgs(
+async function collectArg(
 	command: SourceCommand,
 	ctx: ExtensionCommandContext,
-	seedValues: Record<string, string>,
-): Promise<{ args: Record<string, string> } | { cancelled: true }> {
-	if (command.args.length === 0) {
-		return { args: {} };
+	seedValue: string,
+): Promise<{ arg: string } | { cancelled: true }> {
+	if (!command.argumentHint) {
+		return { arg: "" };
 	}
 
-	const inputs = command.args.map((arg) => {
-		const input = new Input();
-		input.setValue(seedValues[arg.name] ?? "");
-		return input;
-	});
+	const input = new Input();
+	input.setValue(seedValue);
 
-	const result = await ctx.ui.custom<{ values: string[] } | undefined>((tui, theme, _kb, done) => {
+	const result = await ctx.ui.custom<{ value: string } | undefined>((tui, theme, _kb, done) => {
 		const container = new Container();
 		const kb = getKeybindings();
 		let focused = false;
-		let activeIndex = 0;
-		let errorMessage = "";
-
-		const updateInputFocus = () => {
-			for (const [index, input] of inputs.entries()) {
-				input.focused = focused && index === activeIndex;
-			}
-		};
 
 		const rebuild = () => {
 			container.clear();
@@ -367,48 +333,23 @@ async function collectArgs(
 			container.addChild(new Spacer(1));
 			container.addChild(new Text(theme.fg("accent", command.description || `/${command.name}`), 1, 0));
 			container.addChild(new Spacer(1));
-
-			for (const [index, arg] of command.args.entries()) {
-				const isActive = index === activeIndex;
-				container.addChild(new Text(theme.fg("accent", arg.name), 1, 0));
-				container.addChild(
-					new Text(theme.fg("dim", arg.description || (arg.required ? "Required" : "Optional")), 1, 0),
-				);
-
-				if (isActive) {
-					container.addChild(inputs[index]!);
-				} else {
-					const preview = inputs[index]!.getValue().trim();
-					if (preview) {
-						container.addChild(new Text(theme.fg("text", preview), 1, 0));
-					}
-				}
-
-				container.addChild(new Spacer(1));
-			}
-
-			if (errorMessage) {
-				container.addChild(new Text(theme.fg("warning", errorMessage), 1, 0));
-			}
-			container.addChild(new Text(theme.fg("dim", "↑↓ switch field • enter submit • esc cancel"), 1, 0));
+			container.addChild(new Text(theme.fg("dim", command.argumentHint!), 1, 0));
+			container.addChild(input);
+			container.addChild(new Spacer(1));
+			container.addChild(new Text(theme.fg("dim", "enter submit · esc cancel"), 1, 0));
 			container.addChild(new DynamicBorder((s: string) => theme.fg("accent", s)));
-			updateInputFocus();
-		};
-
-		const switchField = (nextIndex: number) => {
-			activeIndex = nextIndex;
-			rebuild();
+			input.focused = focused;
 		};
 
 		rebuild();
 
-		const component = {
+		return {
 			get focused() {
 				return focused;
 			},
 			set focused(value: boolean) {
 				focused = value;
-				updateInputFocus();
+				input.focused = value;
 			},
 			render(width: number) {
 				return container.render(width);
@@ -423,75 +364,26 @@ async function collectArgs(
 					return;
 				}
 
-				if (kb.matches(data, "tui.select.up") || matchesKey(data, Key.up)) {
-					errorMessage = "";
-					switchField(activeIndex === 0 ? command.args.length - 1 : activeIndex - 1);
-					tui.requestRender();
+				if (kb.matches(data, "tui.select.confirm")) {
+					done({ value: input.getValue() });
 					return;
 				}
 
-				if (kb.matches(data, "tui.select.down") || matchesKey(data, Key.down)) {
-					errorMessage = "";
-					switchField(activeIndex === command.args.length - 1 ? 0 : activeIndex + 1);
-					tui.requestRender();
-					return;
-				}
-
-				if (kb.matches(data, "tui.select.confirm") || matchesKey(data, Key.enter)) {
-					const values = inputs.map((input) => input.getValue());
-					const missingIndex = command.args.findIndex(
-						(arg, index) => arg.required && values[index].trim().length === 0,
-					);
-
-					if (missingIndex !== -1) {
-						errorMessage = `Required: ${command.args[missingIndex]?.name}`;
-						switchField(missingIndex);
-						tui.requestRender();
-						return;
-					}
-
-					done({ values });
-					return;
-				}
-
-				errorMessage = "";
-				inputs[activeIndex]?.handleInput(data);
+				input.handleInput(data);
 				tui.requestRender();
 			},
 		};
-
-		return component;
 	});
 
 	if (!result) return { cancelled: true };
-
-	const args: Record<string, string> = {};
-	for (const [index, arg] of command.args.entries()) {
-		const value = result.values[index]?.trim() ?? "";
-		if (value) args[arg.name] = value;
-	}
-	return { args };
+	return { arg: result.value.trim() };
 }
 
-function buildPrompt(command: SourceCommand, argValues: Record<string, string>): string {
+function buildPrompt(command: SourceCommand, argValue: string): string {
 	let prompt = applyPlaceholders(command.body, getPiPlaceholders());
-	const extraArgs: Array<{ name: string; value: string }> = [];
 
-	for (const arg of command.args) {
-		const value = argValues[arg.name];
-		if (!value) continue;
-
-		const token = `{{${arg.name}}}`;
-		if (prompt.includes(token)) {
-			prompt = prompt.replaceAll(token, value);
-		} else {
-			extraArgs.push({ name: arg.name, value });
-		}
-	}
-
-	if (extraArgs.length > 0) {
-		const lines = extraArgs.map((entry) => `- ${entry.name}: ${entry.value}`);
-		prompt = `${prompt}\n\n## Focus Arguments\n${lines.join("\n")}`;
+	if (argValue) {
+		prompt = `${prompt}\n\n## Focus Argument\n${argValue}`;
 	}
 
 	return prompt;
@@ -513,10 +405,11 @@ function splitInvocation(args: string): { commandName: string | null; rawTail: s
 export default function impeccableExtension(pi: ExtensionAPI) {
 	const commandOptions = {
 		description: "Pick and run an Impeccable command from extension-local commands",
-		getArgumentCompletions: (prefix: string) => {
+		getArgumentCompletions: (prefix: string): AutocompleteItem[] | null => {
 			const commands = readSourceCommands();
 			const invocation = splitInvocation(prefix);
 
+			// Only complete command names, not args
 			if (!invocation.commandName || !prefix.trim().includes(" ")) {
 				const firstToken = (invocation.commandName ?? "").toLowerCase();
 				const commandMatches = commands
@@ -526,21 +419,7 @@ export default function impeccableExtension(pi: ExtensionAPI) {
 				return commandMatches.length > 0 ? commandMatches : null;
 			}
 
-			const command = commands.find((item) => item.name === invocation.commandName);
-			if (!command || command.args.length === 0) return null;
-
-			const provided = parseInlineNamedArgs(invocation.rawTail);
-			const providedKeys = new Set(Object.keys(provided));
-
-			const suggestions = command.args
-				.filter((arg) => !providedKeys.has(arg.name))
-				.map((arg) => ({
-					value: `${command.name} ${arg.name}=`,
-					label: `${arg.name}=`,
-					description: `${arg.required ? "required" : "optional"}${arg.description ? ` • ${arg.description}` : ""}`,
-				}));
-
-			return suggestions.length > 0 ? suggestions : null;
+			return null;
 		},
 		handler: async (args: string, ctx: ExtensionCommandContext) => {
 			const commands = readSourceCommands();
@@ -550,7 +429,7 @@ export default function impeccableExtension(pi: ExtensionAPI) {
 			}
 
 			const pickerCommands = [...commands, getFrontendDesignPickerCommand()];
-			const runCommand = async (selectedCommand: SourceCommand, seedArgs: Record<string, string>): Promise<boolean> => {
+			const runCommand = async (selectedCommand: SourceCommand, seedArg: string): Promise<boolean> => {
 				if (selectedCommand.name === FRONTEND_DESIGN_PICKER_COMMAND_NAME) {
 					const skillBlock = buildFrontendDesignSkillBlock();
 					if (!skillBlock) {
@@ -563,10 +442,10 @@ export default function impeccableExtension(pi: ExtensionAPI) {
 					return true;
 				}
 
-				const argResult = await collectArgs(selectedCommand, ctx, seedArgs);
+				const argResult = await collectArg(selectedCommand, ctx, seedArg);
 				if ("cancelled" in argResult) return false;
 
-				const prompt = buildPrompt(selectedCommand, argResult.args);
+				const prompt = buildPrompt(selectedCommand, argResult.arg);
 				pi.sendUserMessage(prompt);
 				ctx.ui.notify(`Running /${selectedCommand.name}`, "info");
 				return true;
@@ -580,20 +459,14 @@ export default function impeccableExtension(pi: ExtensionAPI) {
 					return;
 				}
 
-				const prefilled: Record<string, string> = {};
-				Object.assign(prefilled, parseInlineNamedArgs(invocation.rawTail));
-				if (invocation.rawTail && selectedCommand.args.length === 1 && Object.keys(prefilled).length === 0) {
-					prefilled[selectedCommand.args[0]!.name] = invocation.rawTail;
-				}
-
-				await runCommand(selectedCommand, prefilled);
+				await runCommand(selectedCommand, invocation.rawTail);
 				return;
 			}
 
 			while (true) {
 				const selectedCommand = await pickCommand(pickerCommands, ctx);
 				if (!selectedCommand) return;
-				const completed = await runCommand(selectedCommand, {});
+				const completed = await runCommand(selectedCommand, "");
 				if (!completed) continue;
 				return;
 			}
