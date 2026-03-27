@@ -34,6 +34,7 @@ import {
 	getKeybindings,
 	matchesKey,
 	Spacer,
+	type AutocompleteItem,
 	type SelectItem,
 	SelectList,
 	Text,
