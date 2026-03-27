@@ -8,9 +8,9 @@ Use commands directly:
 /impeccable teach-impeccable
 
 /impeccable adapt
-/impeccable adapt target=checkout context=mobile
-/impeccable polish target="settings page"
-/impeccable critique area=dashboard
+/impeccable adapt checkout mobile
+/impeccable polish "settings page"
+/impeccable critique dashboard
 ```
 or via command picker & argument form via `/impeccable`:
 
@@ -51,7 +51,8 @@ Use the refresh script from the repository root:
 ```
 
 What it does:
-- pulls `source/commands/*.md` from `pbakaus/impeccable`
+- pulls `source/skills/*/SKILL.md` from `pbakaus/impeccable` (each skill directory becomes a command)
+- pulls `source/skills/*/reference/**` for vendored reference files (e.g. critique reference)
 - pulls `source/skills/frontend-design/**`
 - rewrites command references to runtime placeholders resolved by `index.ts` to extension-local absolute paths:
   - `{{frontend_design_skill_path}}`
