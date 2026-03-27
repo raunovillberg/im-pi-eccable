@@ -44,6 +44,8 @@ The extension entrypoint is `./index.ts`, command definitions are loaded from `.
 
 ## Refresh upstream files (commands + local frontend-design skill)
 
+Upstream version synced: [`9d368b7`](https://github.com/pbakaus/impeccable/commit/9d368b777d222e213c9a8f4fa78f6f1d29cb492d) (2026-03-25)
+
 Use the refresh script from the repository root:
 
 ```bash
