@@ -1,26 +1,18 @@
-/**
- * Impeccable pi extension
- *
- * Provides one slash command: /impeccable
- * - Command picker sourced from ./commands/*.md (next to this file)
- * - Argument hint input for user-invocable commands
- * - Sends the expanded command body as a user message
- *
- * Setup:
- * 1) Place this extension at:
- *    ~/.pi/agent/extensions/impeccable/index.ts
- *    (or project-local: .pi/extensions/impeccable/index.ts)
- * 2) Ensure command files exist at ./commands/*.md relative to index.ts
- *
- * Pull commands + local frontend-design skill from GitHub via sparse checkout:
- *   git clone --depth=1 --filter=blob:none --sparse https://github.com/pbakaus/impeccable.git /tmp/impeccable && \
- *   git -C /tmp/impeccable sparse-checkout set source/skills && \
- *   mkdir -p ~/.pi/agent/extensions/impeccable/commands && \
- *   for d in /tmp/impeccable/source/skills/*/; do [ -f "$d/SKILL.md" ] && cp "$d/SKILL.md" ~/.pi/agent/extensions/impeccable/commands/$(basename "$d").md; done && \
- *   rm -rf ~/.pi/agent/extensions/impeccable/skills && \
- *   for d in /tmp/impeccable/source/skills/*/; do [ -d "$d/reference" ] && mkdir -p ~/.pi/agent/extensions/impeccable/skills/$(basename "$d")/reference && cp "$d/reference"/*.md ~/.pi/agent/extensions/impeccable/skills/$(basename "$d")/reference/; done && \
- *   rm -rf /tmp/impeccable
- */
+// Impeccable pi extension
+//
+// Provides one slash command: /impeccable
+// - Command picker sourced from ./commands/*.md (next to this file)
+// - Argument hint input for user-invocable commands
+// - Sends the expanded command body as a user message
+//
+// Setup:
+// 1) Place this extension at:
+//    ~/.pi/agent/extensions/impeccable/index.ts
+//    (or project-local: .pi/extensions/impeccable/index.ts)
+// 2) Ensure command files exist at ./commands/*.md relative to index.ts
+//
+// Pull commands + local frontend-design skill via scripts/refresh-upstream.sh.
+
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
