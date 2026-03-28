@@ -77,10 +77,10 @@ function parseArgumentHint(hint: string | null | undefined): ParsedArg[] {
 }
 
 const PI_BASE_PLACEHOLDERS: Record<string, string> = {
-	command_prefix: "/impeccable ",
 	model: "the model",
 	config_file: "AGENTS.md",
 	ask_instruction: "ask the user directly to clarify what you cannot infer.",
+	available_commands: "adapt, animate, arrange, audit, bolder, clarify, colorize, critique, delight, distill, extract, frontend-design, harden, normalize, onboard, optimize, overdrive, polish, quieter, teach-impeccable, typeset",
 };
 
 function parseFrontmatter(content: string): { frontmatter: Record<string, unknown>; body: string } {
@@ -168,11 +168,13 @@ function getPiPlaceholders(): Record<string, string> {
 	const normalize = (p: string) => p.replaceAll("\\", "/");
 	const frontendDesignSkillPath = normalize(path.join(extensionDir, "skills", "frontend-design", "SKILL.md"));
 	const frontendDesignReferenceGlob = normalize(path.join(extensionDir, "skills", "frontend-design", "reference", "*.md"));
+	const teachImpeccablePath = normalize(path.join(extensionDir, "commands", "teach-impeccable.md"));
 
 	return {
 		...PI_BASE_PLACEHOLDERS,
 		frontend_design_skill_path: frontendDesignSkillPath,
 		frontend_design_reference_glob: frontendDesignReferenceGlob,
+		teach_impeccable_path: teachImpeccablePath,
 	};
 }
 
@@ -511,8 +513,8 @@ export default function impeccableExtension(pi: ExtensionAPI) {
 						return true;
 					}
 
-					pi.sendUserMessage(skillBlock);
-					ctx.ui.notify("Running skill: frontend-design", "info");
+					ctx.ui.setEditorText(skillBlock);
+					ctx.ui.notify("Loaded skill: frontend-design — edit & submit when ready", "info");
 					return true;
 				}
 
@@ -520,8 +522,13 @@ export default function impeccableExtension(pi: ExtensionAPI) {
 				if ("cancelled" in argResult) return false;
 
 				const prompt = buildPrompt(selectedCommand, argResult.args);
-				pi.sendUserMessage(prompt);
-				ctx.ui.notify(`Running /${selectedCommand.name}`, "info");
+				ctx.ui.setEditorText(prompt);
+				const argSummary = Object.entries(argResult.args)
+					.filter(([, v]) => v)
+					.map(([k, v]) => `${k}: ${v}`)
+					.join(", ");
+				const invocation = argSummary ? `/impeccable ${selectedCommand.name} — ${argSummary}` : `/impeccable ${selectedCommand.name}`;
+				ctx.ui.notify(`${invocation} — edit & submit when ready`, "info");
 				return true;
 			};
 

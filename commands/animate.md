@@ -9,7 +9,7 @@ Analyze a feature and strategically add animations and micro-interactions that e
 
 ## MANDATORY PREPARATION
 
-Invoke /impeccable frontend-design — it contains design principles, anti-patterns, and the **Context Gathering Protocol**. Follow the protocol before proceeding — if no design context exists yet, you MUST run /impeccable teach-impeccable first. Additionally gather: performance constraints.
+Read `{{frontend_design_skill_path}}` — it contains design principles, anti-patterns, and the **Context Gathering Protocol**. Follow the protocol before proceeding — if no design context exists yet, you MUST read and follow `{{teach_impeccable_path}}` first. Additionally gather: performance constraints.
 
 ---
 

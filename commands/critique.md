@@ -7,7 +7,7 @@ user-invocable: true
 
 ## MANDATORY PREPARATION
 
-Invoke /impeccable frontend-design — it contains design principles, anti-patterns, and the **Context Gathering Protocol**. Follow the protocol before proceeding — if no design context exists yet, you MUST run /impeccable teach-impeccable first. Additionally gather: what the interface is trying to accomplish.
+Read `{{frontend_design_skill_path}}` — it contains design principles, anti-patterns, and the **Context Gathering Protocol**. Follow the protocol before proceeding — if no design context exists yet, you MUST read and follow `{{teach_impeccable_path}}` first. Additionally gather: what the interface is trying to accomplish.
 
 ---
 
@@ -32,7 +32,7 @@ Review the design against ALL the **DON'T** guidelines in `{{frontend_design_ski
 - Is there visual competition between elements that should have different weights?
 
 ### 3. Information Architecture & Cognitive Load
-> *Consult [cognitive-load](reference/cognitive-load.md) for the working memory rule and 8-item checklist*
+> *Consult [cognitive-load]({{frontend_design_skill_path}}/../reference/cognitive-load.md) for the working memory rule and 8-item checklist*
 - Is the structure intuitive? Would a new user understand the organization?
 - Is related content grouped logically?
 - Are there too many choices at once? Count visible options at each decision point — if >4, flag it
@@ -90,7 +90,7 @@ Review the design against ALL the **DON'T** guidelines in `{{frontend_design_ski
 Structure your feedback as a design director would:
 
 ### Design Health Score
-> *Consult [heuristics-scoring](reference/heuristics-scoring.md)*
+> *Consult [heuristics-scoring]({{frontend_design_skill_path}}/../reference/heuristics-scoring.md)*
 
 Score each of Nielsen's 10 heuristics 0–4. Present as a table:
 
@@ -122,14 +122,14 @@ Highlight 2–3 things done well. Be specific about why they work.
 ### Priority Issues
 The 3–5 most impactful design problems, ordered by importance.
 
-For each issue, tag with **P0–P3 severity** (consult [heuristics-scoring](reference/heuristics-scoring.md) for severity definitions):
+For each issue, tag with **P0–P3 severity** (consult [heuristics-scoring]({{frontend_design_skill_path}}/../reference/heuristics-scoring.md) for severity definitions):
 - **[P?] What**: Name the problem clearly
 - **Why it matters**: How this hurts users or undermines goals
 - **Fix**: What to do about it (be concrete)
 - **Suggested command**: Which command could address this (from: {{available_commands}})
 
 ### Persona Red Flags
-> *Consult [personas](reference/personas.md)*
+> *Consult [personas]({{frontend_design_skill_path}}/../reference/personas.md)*
 
 Auto-select 2–3 personas most relevant to this interface type (use the selection table in the reference). If `{{config_file}}` contains a `## Design Context` section from `teach-impeccable`, also generate 1–2 project-specific personas from the audience/brand info.
 

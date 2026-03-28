@@ -9,7 +9,7 @@ Assess and improve typography that feels generic, inconsistent, or poorly struct
 
 ## MANDATORY PREPARATION
 
-Invoke /impeccable frontend-design — it contains design principles, anti-patterns, and the **Context Gathering Protocol**. Follow the protocol before proceeding — if no design context exists yet, you MUST run /impeccable teach-impeccable first.
+Read `{{frontend_design_skill_path}}` — it contains design principles, anti-patterns, and the **Context Gathering Protocol**. Follow the protocol before proceeding — if no design context exists yet, you MUST read and follow `{{teach_impeccable_path}}` first.
 
 ---
 
@@ -46,7 +46,7 @@ Analyze what's weak or generic about the current type:
 
 ## Plan Typography Improvements
 
-Consult the [typography reference](reference/typography.md) from `{{frontend_design_skill_path}}` for detailed guidance on scales, pairing, and loading strategies.
+Consult the [typography reference]({{frontend_design_skill_path}}/../reference/typography.md) from `{{frontend_design_skill_path}}` for detailed guidance on scales, pairing, and loading strategies.
 
 Create a systematic plan:
 

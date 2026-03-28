@@ -39,7 +39,7 @@ for skill_dir in "$UPSTREAM_DIR"/source/skills/*/; do
   fi
 done
 
-echo "Normalizing command references to local skill path"
+echo "Normalizing command references for agent-actionable paths"
 python3 - "$ROOT_DIR" <<'PY'
 from pathlib import Path
 import re
@@ -48,39 +48,60 @@ import sys
 root = Path(sys.argv[1])
 commands = root / "commands"
 
-explicit = (
-    "Read and follow the vendored local guidance in this repository at "
-    "`{{frontend_design_skill_path}}` (plus its linked "
-    "`{{frontend_design_reference_glob}}` files) for design principles and anti-patterns."
-)
-
 for file in sorted(commands.glob("*.md")):
     text = file.read_text(encoding="utf-8")
     original = text
 
-    # Normalize command_prefix references to our /impeccable invocation
+    # ── Resolve template placeholders ──
+
+    # Map generic {{command_prefix}} to our extension invocation
     text = text.replace("{{command_prefix}}", "/impeccable ")
 
-    # Canonical placeholders (resolved by index.ts at runtime to extension-local absolute paths)
+    # ── Agent-actionable cross-skill references ──
+    # Commands reference other skills via slash-command syntax (/impeccable frontend-design,
+    # /impeccable teach-impeccable) which agents cannot invoke. Replace with direct file-read
+    # instructions using placeholders that index.ts resolves to absolute paths at runtime.
+
+    # "Invoke /impeccable frontend-design — <reason>" → "Read `<skill_path>` — <reason>"
+    text = re.sub(
+        r"Invoke /impeccable frontend-design — ",
+        r"Read `{{frontend_design_skill_path}}` — ",
+        text,
+    )
+
+    # "run /impeccable teach-impeccable" → "read and follow `{{teach_impeccable_path}}`"
+    text = re.sub(
+        r"run /impeccable teach-impeccable",
+        r"read and follow `{{teach_impeccable_path}}`",
+        text,
+    )
+
+    # ── Canonical file-path placeholders ──
+    # (resolved by index.ts at runtime to extension-local absolute paths)
+
     text = text.replace("`skills/frontend-design/SKILL.md`", "`{{frontend_design_skill_path}}`")
     text = text.replace("`./skills/frontend-design/SKILL.md`", "`{{frontend_design_skill_path}}`")
     text = text.replace("`reference/*.md`", "`{{frontend_design_reference_glob}}`")
     text = text.replace("`./skills/frontend-design/reference/*.md`", "`{{frontend_design_reference_glob}}`")
 
-    # Common upstream instruction variants
+    # ── Upstream skill-name variants → resolved path ──
+
     text = text.replace(
         "### Use frontend-design skill\n\n"
         "Use the frontend-design skill for design principles and anti-patterns. "
         "Do NOT proceed until it has executed and you know all DO's and DON'Ts.",
         "### Read local frontend-design guidance\n\n"
-        f"{explicit} Do NOT proceed until you have read them and know all DO's and DON'Ts.",
+        "Read and follow the vendored local guidance at "
+        "`{{frontend_design_skill_path}}` (plus its linked "
+        "`{{frontend_design_reference_glob}}` files) for design principles and anti-patterns. "
+        "Do NOT proceed until you have read them and know all DO's and DON'Ts.",
     )
     text = text.replace(
         "**First**: Use the frontend-design skill for design principles and anti-patterns.",
-        f"**First**: {explicit}",
+        "**First**: Read `{{frontend_design_skill_path}}` (plus `{{frontend_design_reference_glob}}`) "
+        "for design principles and anti-patterns.",
     )
 
-    # Targeted known phrases
     text = text.replace(
         "Review ALL the DON'T guidelines in the frontend-design skill before proceeding.",
         "Review ALL the DON'T guidelines in `{{frontend_design_skill_path}}` before proceeding.",
@@ -102,20 +123,43 @@ for file in sorted(commands.glob("*.md")):
     text = re.sub(r"\bthe frontend-design skill\b", "`{{frontend_design_skill_path}}`", text)
     text = re.sub(r"\bfrontend-design skill\b", "`{{frontend_design_skill_path}}`", text)
 
+    # ── Fix relative reference links in frontend-design command ──
+    # Upstream uses relative paths like (reference/typography.md) which are meaningless
+    # once the content is injected into an agent prompt. Make them absolute by
+    # prepending the skill directory (dirname of the SKILL.md path).
+
+    text = re.sub(
+        r"\(reference/([^)]+)\)",
+        r"({{frontend_design_skill_path}}/../reference/\1)",
+        text,
+    )
+
     if text != original:
         file.write_text(text, encoding="utf-8")
 
-# Safety check: commands should not use generic "frontend-design skill" phrasing anymore
-leftovers = []
+# ── Safety checks ──
+
+errors = []
+
 for file in sorted(commands.glob("*.md")):
     text = file.read_text(encoding="utf-8")
-    if re.search(r"\bfrontend-design skill\b", text):
-        leftovers.append(file)
+    fname = file.name
 
-if leftovers:
-    print("ERROR: unresolved frontend-design skill references:")
-    for f in leftovers:
-        print(f" - {f}")
+    # No unresolved generic "frontend-design skill" phrasing
+    if re.search(r"\bfrontend-design skill\b", text):
+        errors.append(f"{fname}: unresolved 'frontend-design skill' reference")
+
+    # No agent-Dead slash-command invocations to other skills
+    if re.search(r"Invoke /impeccable frontend-design", text):
+        errors.append(f"{fname}: still has 'Invoke /impeccable frontend-design'")
+
+    if re.search(r"run /impeccable teach-impeccable", text):
+        errors.append(f"{fname}: still has 'run /impeccable teach-impeccable'")
+
+if errors:
+    print("ERROR: unresolved references after normalization:")
+    for e in errors:
+        print(f" - {e}")
     raise SystemExit(1)
 
 print("Reference normalization complete.")

@@ -44,7 +44,7 @@ The extension entrypoint is `./index.ts`, command definitions are loaded from `.
 
 ## Refresh upstream files (commands + local frontend-design skill)
 
-Upstream version synced: [`9d368b7`](https://github.com/pbakaus/impeccable/commit/9d368b777d222e213c9a8f4fa78f6f1d29cb492d) (2026-03-25)
+Upstream version synced: [`685728b`](https://github.com/pbakaus/impeccable/commit/685728b992e873be2d27cc187cf4cdc104582ae7) (2026-03-28)
 
 Use the refresh script from the repository root:
 
@@ -56,9 +56,12 @@ What it does:
 - pulls `source/skills/*/SKILL.md` from `pbakaus/impeccable` (each skill directory becomes a command)
 - pulls `source/skills/*/reference/**` for vendored reference files (e.g. critique reference)
 - pulls `source/skills/frontend-design/**`
-- rewrites command references to runtime placeholders resolved by `index.ts` to extension-local absolute paths:
-  - `{{frontend_design_skill_path}}`
-  - `{{frontend_design_reference_glob}}`
+- rewrites cross-skill slash-command invocations (`/impeccable frontend-design`, `/impeccable teach-impeccable`) to agent-actionable file-read instructions with placeholders resolved by `index.ts`:
+  - `{{frontend_design_skill_path}}` — absolute path to vendored frontend-design SKILL.md
+  - `{{frontend_design_reference_glob}}` — absolute glob for reference files
+  - `{{teach_impeccable_path}}` — absolute path to teach-impeccable command
+  - `{{available_commands}}` — comma-separated list of all commands
+- fixes relative reference links in frontend-design to use absolute paths
 
 Optional: use a different upstream fork/URL for testing:
 

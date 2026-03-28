@@ -9,7 +9,7 @@ Assess and improve layout and spacing that feels monotonous, crowded, or structu
 
 ## MANDATORY PREPARATION
 
-Invoke /impeccable frontend-design — it contains design principles, anti-patterns, and the **Context Gathering Protocol**. Follow the protocol before proceeding — if no design context exists yet, you MUST run /impeccable teach-impeccable first.
+Read `{{frontend_design_skill_path}}` — it contains design principles, anti-patterns, and the **Context Gathering Protocol**. Follow the protocol before proceeding — if no design context exists yet, you MUST read and follow `{{teach_impeccable_path}}` first.
 
 ---
 
@@ -46,7 +46,7 @@ Analyze what's weak about the current spatial design:
 
 ## Plan Layout Improvements
 
-Consult the [spatial design reference](reference/spatial-design.md) from `{{frontend_design_skill_path}}` for detailed guidance on grids, rhythm, and container queries.
+Consult the [spatial design reference]({{frontend_design_skill_path}}/../reference/spatial-design.md) from `{{frontend_design_skill_path}}` for detailed guidance on grids, rhythm, and container queries.
 
 Create a systematic plan:
 
