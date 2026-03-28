@@ -76,11 +76,17 @@ function parseArgumentHint(hint: string | null | undefined): ParsedArg[] {
 	return args;
 }
 
+function getAvailableCommandNames(): string {
+	const commandsDir = resolveCommandsDir();
+	if (!commandsDir) return "";
+	const files = fs.readdirSync(commandsDir).filter((file) => file.endsWith(".md"));
+	return files.map((file) => path.basename(file, ".md")).sort().join(", ");
+}
+
 const PI_BASE_PLACEHOLDERS: Record<string, string> = {
 	model: "the model",
 	config_file: "AGENTS.md",
 	ask_instruction: "ask the user directly to clarify what you cannot infer.",
-	available_commands: "adapt, animate, arrange, audit, bolder, clarify, colorize, critique, delight, distill, extract, frontend-design, harden, normalize, onboard, optimize, overdrive, polish, quieter, teach-impeccable, typeset",
 };
 
 function parseFrontmatter(content: string): { frontmatter: Record<string, unknown>; body: string } {
@@ -175,6 +181,7 @@ function getPiPlaceholders(): Record<string, string> {
 		frontend_design_skill_path: frontendDesignSkillPath,
 		frontend_design_reference_glob: frontendDesignReferenceGlob,
 		teach_impeccable_path: teachImpeccablePath,
+		available_commands: getAvailableCommandNames(),
 	};
 }
 
